@@ -17,7 +17,9 @@ toc: true
 
 On this page, you will find step-by-step instructions for downgrading Riak KV Enterprise Edition to Riak KV open-source. Downgrades from EE to OSS must be performed on each node in your cluster in a rolling fashion.
 
-> **Note**: If this KV cluster is a part of a Riak CS installation, please see [Downgrading Riak CS from EE to Open-source][cs downgrade].
+{{% note %}}
+If this KV cluster is a part of a Riak CS installation, please see [Downgrading Riak CS from EE to Open-source][cs downgrade].
+{{% /note %}}
 
 To downgrade your nodes from Riak KV EE to Riak KV OSS, you will need to follow all of these steps on each node in your KV cluster:
 
@@ -29,14 +31,16 @@ To downgrade your nodes from Riak KV EE to Riak KV OSS, you will need to follow 
 
 ## Preliminary Steps
 
-Downgrading from KV EE to KV OSS, you will need to disable Multi-Datacenter (MDC) replication to and from the cluster (1), remove the node from any SNMP monitoring infrastructures (2), and remove the node from any JMX monitoring infrastructures (3).
+Downgrading from KV EE to KV OSS, you will need to disable Multi-Datacenter (MDC) replication to and from the cluster (1), remove the node from any SNMP or JMX monitoring infrastructures (2).
 
 
 ### 1. Disable Multi-Datacenter replication
 
 You will need to disable MDC on your cluster as a replication source and sink.
 
-> **Note:** In complex replication topologies, this will take coordinated commands across your infrastructure.
+{{% note %}}
+In complex replication topologies, this will take coordinated commands across your infrastructure.
+{{% /note %}}
 
 1\. Run `riak-repl connections`, which lists the clusters you are connected to via the MDC V3 protocol. You will see output similar to the following if this cluster is a replication source:
 
@@ -75,6 +79,20 @@ Connection           Cluster Name         <Ctrl-Pid>      [Members]
 ----------           ------------         ----------      ---------
 ```
 
+4\. You will need to run the same process on the clusters that are MDC "sources" to this cluster.
+
+For our example above, you would need to go to a node in Cluster2 and a node in Cluster3 and run the following commands:
+
+```
+riak-repl realtime disable Cluster1
+
+riak-repl fullsync disable Cluster1
+
+riak-repl disconnect Cluster1
+```
+### 2. Remove Riak node from SNMP and JMX monitoring infrastructures
+
+Since Riak KV open-source does not include SNMP or JMX monitoring, you will need to remove any monitoring configuration that depends on Riak's SNMP or JMX support.
 
 ## Downgrade Riak KV Installation
 
@@ -93,7 +111,7 @@ Once you have completed the [preliminary steps](#preliminary-steps), you can dow
 6\. Some package management tools (such as yum and apt-get) will leave your original configuration, but rename them. If this occurred, overwrite the default package configuration files (riak.conf and advanced.config) with the renamed files or with your backup.
 
 
-## 3. Post-Downgrade
+## Post-Downgrade
 
 Now that you've [downgraded your KV installation](#downgrade-riak-kv-installation), you are almost done! You just need to perform a few verifications before you're ready to move on to the next node in your cluster.
 
@@ -120,7 +138,7 @@ We would know that we needed to comment out or remove the line trying to set `jm
 ```
 [vagrant@node1 riak]$ sudo riak config generate
  -config /var/lib/riak/generated.configs/app.2017.04.21.13.37.10.config -args_file /var/lib/riak/generated.configs/vm.2017.04.21.13.37.10.args -vm_args /var/lib/riak/generated.configs/vm.2017.04.21.13.37.10.args  
- ```
+```
 
 This output tells us that the configuration file was parsed properly and that there should be no issue starting the node.
 
@@ -131,4 +149,4 @@ This output tells us that the configuration file was parsed properly and that th
 
 ## Repeat
 
-Once you've downgraded to KV OSS on one node, you will need to follow these instructions for node in your KV cluster one at a time in rolling fashion.
+Once you've downgraded to KV OSS on one node, you will need to follow these instructions for each node in your KV cluster one at a time in rolling fashion.
